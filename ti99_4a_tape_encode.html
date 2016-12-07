@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+
+    <title>TI-99/4a Tape Encoder</title>
+  </head>
+
+  <body>
+    <h1>TI99/4a Tape Encoder</h1>
+    <p><input id="uploadInput" type="file" name="myFiles"></p>
+    <button>Play tape</button>
+  </body>
+<script>
+var audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+var button = document.querySelector('button');
+
+// Constants
+var NR_CHANNELS = 1;
+var INITIAL_SYNC_LEN = 768;
+var RECORD_SYNC_LEN = 8;
+var RECORD_LEN = 64;
+
+
+// TODO: global be gone...
+var level = -1;
+var symbolLen = audioCtx.sampleRate * 32 / 44100; // TODO: calculate based on microsecons instead of 32/44100
+
+function write_byte(b, buf, offset) {
+	var halfSymLen = symbolLen / 2;
+	//console.log("wb: "+offset+" " + b.toString(16));
+
+	for (var j = 0; j < 8; j++) {
+		buf.fill(level, offset, offset + halfSymLen);
+		offset += halfSymLen;
+		
+		if (b & 0x80) {
+			level *= -1;
+		}
+
+		buf.fill(level, offset, offset + halfSymLen);
+		offset += halfSymLen;
+
+		level *= -1;
+		b <<= 1;
+	}
+
+	return offset;
+}
+
+function encodeProgramData(programData, audioCtx) {
+	var nrRecords = Math.ceil(programData.length / RECORD_LEN);
+	var frameCount = (INITIAL_SYNC_LEN + 3 + (2 * nrRecords * (RECORD_SYNC_LEN + 1 + RECORD_LEN + 1))) * 8 * symbolLen;
+
+	var waveBuffer = audioCtx.createBuffer(NR_CHANNELS, frameCount, audioCtx.sampleRate);
+
+	// This gives us the actual array that contains the data
+	var channelBuffer = waveBuffer.getChannelData(0);
+	var channelBufferOffset = 0;
+
+	// Write Initial sync sequence
+	for (var i = 0; i < INITIAL_SYNC_LEN; i++) {
+		channelBufferOffset = write_byte(0, channelBuffer, channelBufferOffset);
+	}
+
+	// Write header
+	channelBufferOffset = write_byte(0xff, channelBuffer, channelBufferOffset);
+	channelBufferOffset = write_byte(nrRecords, channelBuffer, channelBufferOffset);
+	channelBufferOffset = write_byte(nrRecords, channelBuffer, channelBufferOffset);
+
+	for (var recNr = 0; recNr < nrRecords; recNr++) {
+		for (var j = 0; j < 2; j++) {
+			// Record Sync
+			for (var i = 0; i < RECORD_SYNC_LEN; i++) {
+				channelBufferOffset = write_byte(0, channelBuffer, channelBufferOffset);
+			}
+			channelBufferOffset = write_byte(0xff, channelBuffer, channelBufferOffset);
+
+			// Record data
+			chksum = 0;
+			for (var i = 0; i < RECORD_LEN; i++) {
+				idx = recNr * RECORD_LEN + i;
+				if (idx < programData.length) {
+					b = programData[idx];
+				} else {
+					b = 0x80;
+				}
+
+				channelBufferOffset = write_byte(b, channelBuffer, channelBufferOffset);
+				chksum = (chksum + b) & 0xff;
+			}
+
+			// Cheksum
+			channelBufferOffset = write_byte(chksum, channelBuffer, channelBufferOffset);
+		}
+	}
+
+	if (channelBufferOffset != frameCount) {
+		console.log("written " + channelBufferOffset + ", expected " + frameCount);
+	}
+
+	return waveBuffer;
+}
+
+button.onclick = function() {
+	var programFile = document.getElementById("uploadInput").files[0];
+
+	var reader = new FileReader();
+	reader.onload = function(e) {
+		programData = new Uint8Array(e.target.result);
+
+		console.log("encoding file, length: " + programData.length);
+
+		var source = audioCtx.createBufferSource();
+
+		// set the buffer in the AudioBufferSourceNode
+		source.buffer = encodeProgramData(programData, audioCtx);
+
+		// connect the AudioBufferSourceNode to the
+		// destination so we can hear the sound
+		source.connect(audioCtx.destination);
+
+		// start the source playing
+		source.start();
+	};
+	reader.readAsArrayBuffer(programFile);
+}
+  </script>
+</html>
