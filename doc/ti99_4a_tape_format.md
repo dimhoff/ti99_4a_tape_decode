@@ -19,7 +19,9 @@ However when stored to tape the waveform will look more as follows:
 
 ![Tape Audio Waveform](tape_output.png)
 
-The main cause of decoding problems are strong dips in the audio levels. Below are two images showing such dips. The second one is 
+The main cause of decoding problems are strong dips in the audio levels. Below
+are two images showing such dips. The dips in the second image will certainly
+cause bit errors.
 
 ![Dip In Tape Waveform](tape_dip_minor.png)
 
