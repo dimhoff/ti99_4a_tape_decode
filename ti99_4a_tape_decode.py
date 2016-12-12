@@ -717,7 +717,7 @@ parser.add_argument(
     metavar='PREFIX',
     help="Output filename prefix. default: 'tape_'")
 parser.add_argument(
-    '--input-channel',
+    '--channel',
     dest='input_channel', type=int, default=0,
     metavar='CHAN',
     help="Input audio channel to decode, default: 0")

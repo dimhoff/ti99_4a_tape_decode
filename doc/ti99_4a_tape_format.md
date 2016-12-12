@@ -30,7 +30,8 @@ cause bit errors.
 The following image shows the wave form of a tape that is overall bad.
 Especially the positive peaks of the first track are sometimes smaller than
 the overshoot after the negative peaks. Luckily in this case however the second
-track of the stereo recording is better.
+track of the stereo recording is better and can be decoded by using the
+'--channel' option.
 
 ![Bad Tape Waveform](bad_tape.png)
 
