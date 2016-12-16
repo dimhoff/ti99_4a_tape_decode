@@ -35,7 +35,6 @@ VERSION_MINOR = "0"
 
 # TODO:
 # - Single edge/peak decoding
-# - Skip record on resync failure
 # - Be able to detect last bit of data when using peak detection
 
 ###############################################################################
@@ -221,11 +220,16 @@ class DataProc(DataProcIface):
             return DataProcIface.REQUEST_RESYNC
 
     def _process_record(self):
-        record_data = self.__buf[0:-1]
+        if self.__buf:
+            record_data = self.__buf[0:-1]
 
-        record_valid = True
-        if not self.__verify_record():
-            debug_print("WARNING: record {}{} incorrect checksum".format(
+            record_valid = True
+            if not self.__verify_record():
+                debug_print("WARNING: record {}{} incorrect checksum".format(
+                    self.__rec_idx + 1, 'a' if self.__rec_primary else 'b'))
+                record_valid = False
+        else:
+            debug_print("WARNING: record {}{} synchronization failed".format(
                 self.__rec_idx + 1, 'a' if self.__rec_primary else 'b'))
             record_valid = False
 
@@ -294,6 +298,9 @@ class DataProc(DataProcIface):
         return True
 
     def __recover_record(self):
+        if not self.__rec_primary_buf:
+            return False
+
         if len(self.__buf) != len(self.__rec_primary_buf):
             return False
 
@@ -336,13 +343,10 @@ class DataProc(DataProcIface):
 
     def resync_failed_cb(self):
         if not self.__read_header:
-            if self.__rec_idx + 1 == self.__rec_cnt and self.__rec_processed:
-                self.data_complete()
-            else:
-                debug_print("ERROR: Signal synchronization failed but not all "
-                            "records received")
+            if self._process_record() == DataProcIface.REQUEST_RESYNC:
+                return True
 
-        self.__clear_state()
+        return False
 
     def process_eof(self):
         if not self.__read_header:
@@ -350,6 +354,8 @@ class DataProc(DataProcIface):
                 self.data_complete()
             else:
                 debug_print("ERROR: EOF but not all records received")
+
+        self.__clear_state()
 
 
 ###############################################################################
@@ -472,12 +478,23 @@ class BitProc(BitProcIface):
         # Reset state if resync fails
         if (self.__resync_start_idx + self.__resync_max_symbol *
                 self.__symbol_len < frame_idx):
-            debug_print("Failed to resync before deadline "
+            debug_print("   Failed to resync before deadline "
                         "({} > {} + {})".format(
                             frame_idx, self.__resync_start_idx,
                             self.__resync_max_symbol))
-            self.__data_proc.resync_failed_cb()
-            self.__clear_state()
+            if self.__data_proc.resync_failed_cb() == True:
+                self.__resync_start_idx += int(
+                    (MAX_RECORD_SYNC_SYMBOLS + END_OF_SYNC_SYMBOLS + (RECORD_LEN + CHKSUM_LEN) * 8) *
+                        self.__symbol_len)
+                # Add some extra just to be sure, It doesn't hurt if we
+                # start half way the 8 resync bytes
+                # TODO: is this needed?
+                self.__resync_start_idx += int(8 * self.__symbol_len)
+
+                if self.__resync_start_idx < frame_idx:
+                    self._process_symbol_resync(frame_idx, level_len)
+            else:
+                self.__clear_state()
             return
 
         expected_idx = int(round(
@@ -501,7 +518,12 @@ class BitProc(BitProcIface):
 
             self.__byte = ((self.__byte << 1) | bit) & 0xff
 
-            if self.__byte == 0xff:
+            if self.__resync_start_idx > frame_idx:
+                # Prevent triggering within a record to be skipped
+                # NOTE: The whole resync logic is still run to make sure
+                #       the continues resync works.
+                pass
+            elif self.__byte == 0xff:
                 self.__resync = False
 
             if CONFIG['continues_resync']:
