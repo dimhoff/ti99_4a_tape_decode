@@ -450,8 +450,7 @@ class BitProc(BitProcIface):
                         self.__training_start) /
                     len(self.__training_matches))
 
-            # TODO: what to do with this...
-            if True:  # TEMPORARY
+            if CONFIG['continues_resync']:
                 self.__training_start = frame_idx
                 self.__edge_cnt = 0
 
@@ -528,7 +527,12 @@ class BitProc(BitProcIface):
             missed_symbol_cnt = int(round(
                 (level_len + (self.__symbol_len * CONFIG['max_bit_diff'])) /
                 self.__symbol_len))
-            self.__edge_cnt += missed_symbol_cnt
+
+            if CONFIG['continues_resync']:
+                self.__training_start = frame_idx
+                self.__edge_cnt = 0
+            else:
+                self.__edge_cnt += missed_symbol_cnt
 
             if DEBUG_RESYNC_BITS:
                 debug_print("RESYNC ! {} {} {}x".format(
