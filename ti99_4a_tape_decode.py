@@ -110,11 +110,15 @@ MAX_INITIAL_SYNC_SYMBOLS = 800 * 8
 # Number of synchronization '0' bits between records
 MAX_RECORD_SYNC_SYMBOLS = 8 * 8
 
+# Number of symbols at end of synchronization period (eg. 0xff byte after the
+# eight 0 bytes)
+END_OF_SYNC_SYMBOLS = 8
+
 # Record length
 RECORD_LEN = 64
 
 # Record checksum length
-CHECKSUM_LEN = 1
+CHKSUM_LEN = 1
 
 ###############################################################################
 # DEBUG STUFF
@@ -138,12 +142,25 @@ class DataProcIface(object):
     NOTIFY_DONE = 'DONE'
 
     def process_byte(self, val, bit_error_mask):
+        """Called for every received byte. This function can return one
+        of the following constants to notify the lower layer.
+
+         - REQUEST_RESYNC: Start signal resynchronization
+         - NOTIFY_DONE: Indicate that reception of current program is
+                        finished. Lower layer will wait for a new header.
+        """
         pass
 
     def resync_failed_cb(self):
+        """Called if resync failed before max. symbols is reached. If
+        this funtion returns True lower layer will skip the current
+        record and will try to resync on the next record. If False is
+        returned then lower layer will stop proccessing the current
+        program."""
         pass
 
     def process_eof(self):
+        """Called upon end of input is reached"""
         pass
 
 
@@ -182,13 +199,14 @@ class DataProc(DataProcIface):
 
         if self.__read_header:
             return self._process_header()
-        elif len(self.__buf) == RECORD_LEN + CHECKSUM_LEN:
+        elif len(self.__buf) == RECORD_LEN + CHKSUM_LEN:
             return self._process_record()
 
     def _process_header(self):
         if len(self.__buf) == 2:
             if self.__buf[0] != self.__buf[1]:
                 debug_print("ERROR: Header record count mismatch")
+                debug_print("----------------------------------")
                 self.__clear_state()
                 return DataProcIface.NOTIFY_DONE
 
@@ -236,8 +254,8 @@ class DataProc(DataProcIface):
             elif record_valid:
                 # Extra verification of data
                 if self.__data[-RECORD_LEN:] != record_data:
-                    debug_print("ERROR: primary and secondary records don't "
-                                "match")
+                    debug_print("ERROR: Record {:2} primary and secondary "
+                            "records don't match".format(self.__rec_idx + 1))
                     record_corrupt = True
 
             if record_corrupt:
@@ -266,7 +284,7 @@ class DataProc(DataProcIface):
         return DataProcIface.REQUEST_RESYNC
 
     def __verify_record(self):
-        if len(self.__buf) != RECORD_LEN + CHECKSUM_LEN:
+        if len(self.__buf) != RECORD_LEN + CHKSUM_LEN:
             print("ASSERT: record buffer incorrect length")
             return False
 
@@ -383,11 +401,11 @@ class BitProc(BitProcIface):
         self.__bit_cnt = 0
 
     def _start_resync(self, frame_idx, max_symbols):
-        # resync_max_symbol: Add 8 for the 0xff end-of-sync byte, and 1 to
-        #                    allow some fluctuation in the symbol length
+        # resync_max_symbol: Add 8 to allow some fluctuation in the
+        #                    symbol length
         self.__resync = True
         self.__resync_start_idx = frame_idx
-        self.__resync_max_symbol = max_symbols + 8 + 1
+        self.__resync_max_symbol = max_symbols + END_OF_SYNC_SYMBOLS + 8
         self.__byte = 0
         self.__edges_within_symbol = 0
 
