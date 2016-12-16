@@ -445,10 +445,10 @@ class BitProc(BitProcIface):
         if (len(self.__training_matches) == CONFIG['training_threshold'] and
                 self.__symbol_len > CONFIG['min_bit_len']):
             # Compensate symbol len and match start time for better accuracy
-            # TODO: keep float?
-            self.__symbol_len = int(round(
-                (float(self.__training_matches[-1]) - self.__training_start) /
-                len(self.__training_matches)))
+            self.__symbol_len = (
+                    float(self.__training_matches[-1] -
+                        self.__training_start) /
+                    len(self.__training_matches))
 
             # TODO: what to do with this...
             if True:  # TEMPORARY
@@ -481,9 +481,9 @@ class BitProc(BitProcIface):
             self.__clear_state()
             return
 
-        expected_idx = (
+        expected_idx = int(round(
             self.__training_start +
-            (self.__edge_cnt + 1) * self.__symbol_len)
+            (self.__edge_cnt + 1) * self.__symbol_len))
 
         if (abs(frame_idx - expected_idx) <
                 self.__symbol_len * CONFIG['max_bit_diff']):
@@ -525,9 +525,9 @@ class BitProc(BitProcIface):
             # symbol?
             self.__edges_within_symbol = 0
 
-            missed_symbol_cnt = int(
+            missed_symbol_cnt = int(round(
                 (level_len + (self.__symbol_len * CONFIG['max_bit_diff'])) /
-                self.__symbol_len)
+                self.__symbol_len))
             self.__edge_cnt += missed_symbol_cnt
 
             if DEBUG_RESYNC_BITS:
@@ -536,8 +536,8 @@ class BitProc(BitProcIface):
                             level_len, missed_symbol_cnt))
 
     def _process_symbol_active(self, frame_idx, level_len):
-        expected_idx = (self.__training_start +
-                        (self.__edge_cnt + 1) * self.__symbol_len)
+        expected_idx = int(round(self.__training_start +
+                        (self.__edge_cnt + 1) * self.__symbol_len))
 
         recurse = False
         bit = None
@@ -610,7 +610,7 @@ class BitProc(BitProcIface):
         if recurse:
             self._process_symbol_active(
                 frame_idx,
-                level_len - self.__symbol_len)
+                int(round(level_len - self.__symbol_len)))
 
 
 ###############################################################################
