@@ -272,11 +272,7 @@ class DataProc(DataProcIface):
         self.__buf_error_mask = ''
 
         if self.__rec_idx == self.__rec_cnt:
-            if not self.__data_corrupt:
-                self.data_complete()
-            else:
-                debug_print("ERROR: data received but corrupt")
-
+            self.data_complete()
             self.__clear_state()
 
             return DataProcIface.NOTIFY_DONE
@@ -321,6 +317,11 @@ class DataProc(DataProcIface):
         return False
 
     def data_complete(self):
+        if self.__data_corrupt:
+            debug_print("ERROR: data received but corrupt")
+            debug_print("----------------------------------")
+            return
+
         filename = "{}{:03}.{}".format(
                 self.__file_prefix, self.__file_idx,
                 self.__file_extension)
