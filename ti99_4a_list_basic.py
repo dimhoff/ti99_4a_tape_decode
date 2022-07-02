@@ -194,7 +194,7 @@ def parse_line_table(data, header):
 
     # NOTE: LT memory grows down, so start > end...
     lt = {}
-    for i in xrange(0, lt_len, 4):
+    for i in range(0, lt_len, 4):
         entry = struct.unpack_from(">HH", data, HDR_LEN + lt_len - 4 - i)
 
         lt[entry[0]] = (entry[1] - (header['line_table_start'] + 1) + HDR_LEN +
@@ -212,18 +212,19 @@ class DecodeException(Exception):
 
 
 def decode_line(data, addr):
-    line_len = ord(data[addr])
+
+    line_len = data[addr]
 
     if addr + line_len >= len(data):
         raise DecodeException("Line length beyond end of data")
 
-    if data[addr + line_len] != '\x00':
+    if chr(data[addr + line_len]) != '\x00':
         raise DecodeException("DECODE ERROR: Invalid EOL byte")
 
     line = ''
     off = 1
     while off < line_len:
-        token = ord(data[addr + off])
+        token = data[addr + off]
         off += 1
 
         if token == 0x81:
@@ -232,7 +233,7 @@ def decode_line(data, addr):
             line = line + ' :: '
         elif token == 0x83:
             line = line + ' ! '
-            line = line + data[addr + off:addr + line_len]
+            line = line + data[addr + off:addr + line_len].decode(encoding='latin-1')
             off = line_len
         elif token == 0x84:
             line = line + 'IF '
@@ -280,7 +281,7 @@ def decode_line(data, addr):
             line = line + 'DELETE '
         elif token == 0x9a:
             line = line + 'REM '
-            line = line + data[addr + off:addr + line_len]
+            line = line + data[addr + off:addr + line_len].decode(encoding='latin-1')
             off = line_len
         elif token == 0x9b:
             line = line + 'ON '
@@ -360,25 +361,25 @@ def decode_line(data, addr):
             if off + 1 > line_len:
                 raise DecodeException("Quoted str. argument beyond EOL")
 
-            arg_len = ord(data[addr + off])
+            arg_len = data[addr + off]
             off += 1
 
             if off + arg_len > line_len:
                 raise DecodeException("Quoted str. argument beyond EOL")
 
-            line = line + '"' + data[addr + off:addr + off + arg_len] + '" '
+            line = line + '"' + data[addr + off:addr + off + arg_len].decode(encoding='latin-1') + '" '
             off += arg_len
         elif token == 0xc8:
             if off + 1 > line_len:
                 raise DecodeException("Unquoted str. argument beyond EOL")
 
-            arg_len = ord(data[addr + off])
+            arg_len = data[addr + off]
             off += 1
 
             if off + arg_len > line_len:
                 raise DecodeException("Unquoted str. argument beyond EOL")
 
-            line = line + data[addr + off:addr + off + arg_len] + ' '
+            line = line + data[addr + off:addr + off + arg_len].decode(encoding='latin-1') + ' '
             off += arg_len
         elif token == 0xc9:
             if off + 2 > line_len:
@@ -486,7 +487,7 @@ def decode_line(data, addr):
             #       but they work...
             line = line + chr(token)
 
-            next_char = data[addr + off]
+            next_char = chr(data[addr + off])
             while ('A' <= next_char <= 'Z' or
                     'a' <= next_char <= 'z' or
                     '0' <= next_char <= '9' or
@@ -497,7 +498,7 @@ def decode_line(data, addr):
                 line = line + next_char
                 if next_char == '$':
                     break
-                next_char = data[addr + off]
+                next_char = chr(data[addr + off])
             line = line + ' '
         else:
             print(line)
