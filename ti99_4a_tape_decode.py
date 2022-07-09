@@ -367,14 +367,10 @@ class BitProcIface(object):
         """Called for every sample. 'level' is the detected bit level."""
         pass
 
-    def process_edge(self, frame_idx, new_level):
-        """Called for every change of the bit level to a new level"""
-        pass
-
-    def process_peak(self, frame_idx, level):
-        """This function is called for the highest sample detected during a bit
-        level is at given frame_idx. Note: this function is not synchrone with
-        process_sample() calls, eg. frame_idx might be in the past."""
+    def process_edge(self, edge_idx, peak_idx, new_level):
+        """Called for every change of the bit level to a new level. peak_idx is
+        the index of the first sample with the highest/lowest value within the
+        level."""
         pass
 
     def process_eof(self, frame_idx):
@@ -416,15 +412,17 @@ class BitProc(BitProcIface):
         self.__byte = 0
         self.__edges_within_symbol = 0
 
-    def process_edge(self, frame_idx, new_level):
-        if not CONFIG['use_peak']:
-            self._process_symbol(frame_idx)
-
-    def process_peak(self, frame_idx, level):
+    def process_edge(self, edge_idx, peak_idx, new_level):
         if CONFIG['use_peak']:
-            self._process_symbol(frame_idx)
+            frame_idx = peak_idx
+            # FIXME: TEMPORARY HACK FOR LAST BIT... (8 is just a big number...)
+            if edge_idx > peak_idx + self.__symbol_len * 8:
+                if not self.__data_proc._DataProc__read_header:
+                    debug_print("PEAK_TO_EDGE HACK!!!")
+                frame_idx = edge_idx
+        else:
+            frame_idx = frame_idx
 
-    def _process_symbol(self, frame_idx):
         level_len = frame_idx - self.__last_edge_idx
         self.__last_edge_idx = frame_idx
 
@@ -598,7 +596,11 @@ class BitProc(BitProcIface):
             # peak detection and the signal has died out(ie. last bit) then
             # there will always be a peak within the symbol due to any ofshoot
             # of the previous peak.
-            bit = 0
+            # UPDATE: hack in process_edge() should fix this for now...
+            if self.__edges_within_symbol % 2 == 1:
+                bit = 1
+            else:
+                bit = 0
             bit_error = 1
             self.__edges_within_symbol = 0
             recurse = True
@@ -712,8 +714,7 @@ class SignalProc(SignalProcIface):
         # Bit processor callbacks
         self.__bit_proc.process_sample(self.__frame_idx, self.__level)
         if edge:
-            self.__bit_proc.process_edge(self.__frame_idx, self.__level)
-            self.__bit_proc.process_peak(self.__peak_idx, self.__level)
+            self.__bit_proc.process_edge(self.__frame_idx, self.__peak_idx, self.__level)
 
         # DEBUG: write debug wave
         if self.__debug_wave:
