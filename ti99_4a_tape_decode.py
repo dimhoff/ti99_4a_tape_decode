@@ -334,7 +334,7 @@ class DataProc(DataProcIface):
                 self.__file_extension)
 
         with open(filename, "wb") as outf:
-            outf.write(self.__data)
+            outf.write(bytes(self.__data, "latin-1"))
 
         debug_print("Written data to file: " + filename)
         debug_print("----------------------------------")
@@ -751,7 +751,7 @@ parser.add_argument(
 parser.add_argument(
     '--profile',
     dest="profile", default=DEFAULT_PROFILE,
-    choices=profiles.keys().append('?'),
+    choices=list(profiles.keys()).append('?'),
     metavar='P',
     help="Use given decoder configuration profile. Use '?' to get "
          "a list of available profiles. Default: " +
@@ -824,7 +824,7 @@ else:
     while len(data) > 0:
         sample_len = wf.getnchannels() * wf.getsampwidth()
 
-        for i in xrange(0, len(data), sample_len):
+        for i in range(0, len(data), sample_len):
             if wf.getsampwidth() == 2:
                 sample = struct.unpack_from("<h", data, i + channel * 2)[0]
             elif wf.getsampwidth() == 1:
