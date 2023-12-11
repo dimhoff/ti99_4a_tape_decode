@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # ti99_4a_tape_decode.py - TI-99/4a cassette tape decoder
 #
 # Copyright (c) 2016 David Imhoff <dimhoff.devel@gmail.com>

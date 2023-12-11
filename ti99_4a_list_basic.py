@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # ti99_4a_list_basic.py - List TI-99/4a BASIC tape dump program
 #
 # Copyright (c) 2016 David Imhoff <dimhoff.devel@gmail.com>

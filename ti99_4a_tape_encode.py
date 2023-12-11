@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # ti99_4a_tape_encode.py - TI-99/4a Cassette tape data encoder
 #
 # Copyright (c) 2016 David Imhoff <dimhoff.devel@gmail.com>
@@ -69,15 +69,15 @@ def write_byte(b):
 
     b = int(b)
 
-    for j in xrange(0, 8):
+    for j in range(0, 8):
         level = level * -1
-        for i in xrange(0, int(SYMBOL_LEN / 2)):
+        for i in range(0, int(SYMBOL_LEN / 2)):
             output_write(level)
 
         if b & 0x80:
             level = level * -1
 
-        for i in xrange(0, int(SYMBOL_LEN / 2)):
+        for i in range(0, int(SYMBOL_LEN / 2)):
             output_write(level)
 
         b = b << 1
@@ -123,7 +123,7 @@ else:
     stream.write("\x00\x00" * 50000)
 
 # Send Sync
-for i in xrange(0, INITIAL_SYNC_LEN):
+for i in range(0, INITIAL_SYNC_LEN):
     write_byte(0x00)
 
 # Send header
@@ -133,17 +133,17 @@ write_byte(nrecords)
 write_byte(nrecords)
 
 # Send records
-for i in xrange(0, nrecords):
+for i in range(0, nrecords):
     print("Writing Record {}".format(i))
-    for z in xrange(0, 2):
-        for j in xrange(0, 8):
+    for z in range(0, 2):
+        for j in range(0, 8):
             write_byte(0x00)
 
         write_byte(0xff)
 
         chksum = 0
-        for j in xrange(0, 64):
-            b = ord(data[(i * 64) + j])
+        for j in range(0, 64):
+            b = data[(i * 64) + j]
             chksum += b
             write_byte(b)
 

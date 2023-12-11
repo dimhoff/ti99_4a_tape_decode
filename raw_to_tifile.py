@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 # raw_to_tifile.py - Convert raw TI-99/4a tape dump to TIFILE format
 #
 # Copyright (c) 2016 David Imhoff <dimhoff.devel@gmail.com>
@@ -37,27 +37,27 @@ with open(input_file, 'rb') as inf:
 
 sect_cnt = int(math.ceil(float(len(data)) / SECT_LEN))
 eof_off = len(data) % SECT_LEN
-timestamp_now = '\x00\x00\x00\x00'  # TODO:
+timestamp_now = b'\x00\x00\x00\x00'  # TODO:
 print("{}%{}={}".format(len(data), SECT_LEN, eof_off))
 
 file_header = (
-    "\x07TIFILES" +                     # File Magic
+    b"\x07TIFILES" +                    # File Magic
     struct.pack(">H", sect_cnt) +       # Tot. Num. Sectors
-    "\x01" +                            # Flags: Program
-    "\x00" +                            # Num. Rec./Sect.
+    b"\x01" +                           # Flags: Program
+    b"\x00" +                           # Num. Rec./Sect.
     struct.pack(">B", eof_off) +        # EOF offset
-    "\x00" +                            # Logical Record Length
-    "\x00\x00" +                        # L3 Record Count
-    filename.ljust(10, ' ')[:10] +      # File name
-    "\x00" +                            # MXT, 0 == last file
-    "\x00" +                            # --Reserved--
-    "\x00\x00" +                        # No extended headers
+    b"\x00" +                           # Logical Record Length
+    b"\x00\x00" +                       # L3 Record Count
+    filename.ljust(10, ' ')[:10].encode('latin-1') +      # File name
+    b"\x00" +                           # MXT, 0 == last file
+    b"\x00" +                           # --Reserved--
+    b"\x00\x00" +                       # No extended headers
     timestamp_now +                     # Creation Time
     timestamp_now +                     # Update Time
-    ('\x00' * 90))                      # Padding
+    bytes(90))                          # Padding
 
 with open(output_file, 'wb') as outf:
     outf.write(file_header)
     outf.write(data)
     if eof_off:
-        outf.write('\x00' * (SECT_LEN - eof_off))
+        outf.write(bytes((SECT_LEN - eof_off)))
