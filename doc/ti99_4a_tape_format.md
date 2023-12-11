@@ -3,7 +3,7 @@ Detailed information about the encoding and data format of the tapes can be
 found [here](http://www.unige.ch/medecine/nouspikel/ti99/cassette.htm).
 
 In short, bit are encoded using
-[Biphase mark coding](https://en.wikipedia.org/wiki/Biphase_mark_code). The
+[Biphase mark coding](http://www.quadibloc.com/comp/tapeint.htm). The
 resulting digital signal is then filtered by a high-pass filter before being
 outputted.
 
