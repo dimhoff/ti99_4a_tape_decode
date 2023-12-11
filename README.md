@@ -43,3 +43,15 @@ closer inspection of the wave form at the point of the issue.
 For debugging the decoder parameters the '--debug-wave' argument can be used.
 This will generate a new .WAV file with the original wave form and the
 calculated peak, threshold and bit levels.
+
+## Example usage
+To decode the test file supplied in the repository run:
+
+    $ ./ti99_4a_tape_decode.py test/ti99_4a_print.wav
+         16865: Training Complete, symbol len. = 31.9875
+        201343: Successfully parsed header; rec count = 1
+        239718: Record  1 sucessfully received
+        239718: Written data to file: tape_000.dat
+        239718: ----------------------------------
+    $ ./ti99_4a_list_basic.py tape_000.dat
+       10 PRINT "UUUUUUUU"
