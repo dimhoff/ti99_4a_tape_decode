@@ -305,7 +305,7 @@ class DataProc(DataProcIface):
             return False
 
         reconstructed_buf = ''
-        for i in xrange(0, len(self.__buf)):
+        for i in range(0, len(self.__buf)):
             # Check if there are no overlapping bit errors
             byte1_mask = ord(self.__rec_primary_error_mask[i])
             byte2_mask = ord(self.__buf_error_mask[i])
