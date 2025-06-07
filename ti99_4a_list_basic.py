@@ -502,7 +502,7 @@ def decode_line(data, addr):
             line = line + ' '
         else:
             print(line)
-            print(data[addr:addr+line_len].encode('hex'))
+            print(data[addr:addr+line_len].hex())
             raise DecodeException("Invalid token 0x{:02x}".format(token))
 
     return line
